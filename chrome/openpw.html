@@ -1,0 +1,196 @@
+<span style="color: red;" id="span_output" ></span><br />
+<form id='ourform' onsubmit="go();return false;">
+Master password: <input type="password" id="txt_pw"/><br />
+<input type="button" id=btn_confirm onclick="toggleconfirm();" value="Add confirm"/>
+<span id="confirmdiv" style="display: none;">Confirm: <input type="password" id="txt_confirm"/></span><br />
+Selected field only: <input type="checkbox" id="chk_selectedonly" value="false" /><br />
+<input type="submit" />
+</form>
+<script type="text/javascript">
+
+function toggleconfirm() {
+    var confirmdiv = document.getElementById("confirmdiv");
+    var btn = document.getElementById("btn_confirm");
+    if(confirmdiv.style.display == "none") {
+        confirmdiv.style.display = "block";
+        btn.value = "Remove confirm";
+        txt_confirm.focus();
+    } else {
+        confirmdiv.style.display = "none";
+        btn.value = "Add confirm";
+    }
+}
+
+var b64pad  = "";
+var chrsz   = 8;
+
+function core_sha1(x, len)
+{
+  x[len >> 5] |= 0x80 << (24 - len % 32);
+  x[((len + 64 >> 9) << 4) + 15] = len;
+
+  var w = Array(80);
+  var a =  1732584193;
+  var b = -271733879;
+  var c = -1732584194;
+  var d =  271733878;
+  var e = -1009589776;
+
+  for(var i = 0; i < x.length; i += 16) {
+    var olda = a;
+    var oldb = b;
+    var oldc = c;
+    var oldd = d;
+    var olde = e;
+
+    for(var j = 0; j < 80; j++) {
+      if(j < 16) w[j] = x[i + j];
+      else w[j] = rol(w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16], 1);
+      var t = safe_add(safe_add(rol(a, 5), sha1_ft(j, b, c, d)),
+                       safe_add(safe_add(e, w[j]), sha1_kt(j)));
+      e = d;
+      d = c;
+      c = rol(b, 30);
+      b = a;
+      a = t;
+    }
+
+    a = safe_add(a, olda);
+    b = safe_add(b, oldb);
+    c = safe_add(c, oldc);
+    d = safe_add(d, oldd);
+    e = safe_add(e, olde);
+  }
+  return Array(a, b, c, d, e);
+
+}
+
+function sha1_ft(t, b, c, d)
+{
+  if(t < 20) return (b & c) | ((~b) & d);
+  if(t < 40) return b ^ c ^ d;
+  if(t < 60) return (b & c) | (b & d) | (c & d);
+  return b ^ c ^ d;
+}
+
+function sha1_kt(t)
+{
+  return (t < 20) ?  1518500249 : (t < 40) ?  1859775393 :
+         (t < 60) ? -1894007588 : -899497514;
+}
+
+function safe_add(x, y)
+{
+  var lsw = (x & 0xFFFF) + (y & 0xFFFF);
+  var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+  return (msw << 16) | (lsw & 0xFFFF);
+}
+
+function rol(num, cnt)
+{
+  return (num << cnt) | (num >>> (32 - cnt));
+}
+
+function str2binb(str)
+{
+  var bin = Array();
+  var mask = (1 << chrsz) - 1;
+  for(var i = 0; i < str.length * chrsz; i += chrsz) {
+    bin[i>>5] |= (str.charCodeAt(i / chrsz) & mask) << (24 - i % 32);
+  }
+  return bin;
+}
+
+function binb2b64(binarray)
+{
+  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  var str = "";
+  for(var i = 0; i < binarray.length * 4; i += 3)
+  {
+    var triplet = (((binarray[i   >> 2] >> 8 * (3 -  i   %4)) & 0xFF) << 16)
+                | (((binarray[i+1 >> 2] >> 8 * (3 - (i+1)%4)) & 0xFF) << 8 )
+                |  ((binarray[i+2 >> 2] >> 8 * (3 - (i+2)%4)) & 0xFF);
+    for(var j = 0; j < 4; j++)
+    {
+      if(i * 8 + j * 6 > binarray.length * 32) str += b64pad;
+      else str += tab.charAt((triplet >> 6*(3-j)) & 0x3F);
+    }
+  }
+  return str;
+}
+
+function b64_sha1(s){
+    var bin = str2binb(s);
+    var sha1 = core_sha1(bin,s.length * chrsz);
+    var result = binb2b64(sha1);
+    return result;
+}
+/*
+var actualCode = '(' + 
+    function() {
+    }
+ + ')();';
+chrome.tabs.executeScript( {code: actualCode} );
+*/
+
+function go() {
+    console.log('openpw v1.0');
+    var confirmdiv = document.getElementById("confirmdiv");
+    if( confirmdiv.style.display != "none" ) {
+        if( txt_confirm.value != txt_pw.value ) {            
+            console.log(span_output);
+            span_output.innerHTML = "Passwords don't match.  Please try again.";
+            return;
+        }
+    }
+    chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
+        var tab = tabs[0];
+    //    console.log(tab);
+        var masterpw = txt_pw.value;
+          var host=tab.url.match(/http(s*):\/\/([^/]+)/)[2];
+            var domain = host;
+          if( sld=host.match(/([^.]+(.com)*\.([a-z][a-z][a-z]+|a(m|s|x)|bg|c(f|l|z|n)|d(e|j|k)|eu|fm|fo|gl|gm|hm|hk|io|km|la|ly|m(d|e|n|p|q|r)|net|org|nc|nu|s(i|m|n|r|t|u|z)|td|tk|uz|vc|vu|ws))$/i)) {
+              domain=sld[0];
+        }else{
+           domain=host.match(/([^.]+\.[^.]+\.[a-z][a-z])$/i)[0];
+        }
+
+        var childpw = b64_sha1(masterpw + ":" + domain).substr(0,16);
+
+        console.log(chk_selectedonly.checked);
+        var actualCode = '(' + 
+            function(domain, pw, selectedfieldonly) {
+                console.log('pw to inject: ' + pw + ' domain ' + domain + ' selectedfieldonly: ' + selectedfieldonly );
+                var inputs = document.getElementsByTagName('input');
+                var found = false;
+                console.log(document.activeElement);
+                for (var i = 0; i < inputs.length; i++ ) {
+                    var input = inputs[i];
+                    var updatevalue = false;
+                    if( selectedfieldonly ) {
+                        if( input == document.activeElement ) {
+                             updatevalue = true;
+                        }
+                    } else {
+                        if( input.type == 'password' || input.id == 'password' || input.id == 'pw' || input.name == 'password' || input.name == 'pw' || /[^a-z]pw/.test(input.name ) ) {
+            //                console.log('found password field: id ' + input.id + ' name ' + input.name );
+                            updatevalue = true;
+                        }
+                    }
+                    if( updatevalue ) {
+                        input.value = pw;
+                        found = true;
+                    }
+                }
+                if( !found ) {
+                    window.prompt("Password for " + domain + " is ", pw );
+                }
+            }
+         + ')("' + domain + '","' + childpw + '",' + chk_selectedonly.checked + ');';
+        chrome.tabs.executeScript( {code: actualCode} );
+
+        window.close();
+    });
+}
+</script>
+

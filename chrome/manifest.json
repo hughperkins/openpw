@@ -1,0 +1,13 @@
+{
+    "name": "OpenPW",
+    "version": "1.0",
+    "description": "Opensource secure password hasher",
+    "browser_action": {
+        "default_icon": "icon.png",
+        "popup": "openpw.html"
+    },
+    "permissions": [
+        "tabs", "http://*/*", "https://*/*"
+    ]
+}
+
