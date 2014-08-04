@@ -1,4 +1,6 @@
 <html>
+<head>
+<meta charset="utf-8" />
 <script type="text/javascript">
 javascript:
 /* copyright Hugh Perkins 2013, and all the contributors listed below
@@ -140,6 +142,10 @@ function toggleconfirm() {
     }
 }
 
+function debug( msg ) {
+   document.getElementById("debug").innerHTML = document.getElementById("debug").innerHTML + msg + "<br />";
+}
+
 function go() {
     var confirmdiv = document.getElementById("confirmdiv");
     if( confirmdiv.style.display != "none" ) {
@@ -148,17 +154,36 @@ function go() {
             return;
         }
     }
-    window.prompt('Your password for '+domain.value+' is',b64_sha1(master.value+':'+domain.value).substr(0,16));
+    var pass = b64_sha1(master.value+':'+domain.value).substr(0,16);
+    var version = 1;
+    if( document.getElementById("versionselect").value == "v2" ) {
+        version = 2;
+    }
+    document.getElementById("debug").innerHTML = "";
+    if( version == 2 ) {
+        if( pass.search( /\d/ ) == -1 ) {
+            //alert("no digit found");
+            debug("No digit found; replaced last digit with '1'");
+            pass = pass.substring(0,15) + "1";
+        }
+    }
+    window.prompt('Your password for '+domain.value+' is', pass );
 }
 
 </script>
+</head>
 <body>
 <form  onsubmit="go();;return false;">
 Domain: <input type="text" id="domain" /><br />
 Master password: <input type="password" id="master"/><br />
 <input type="button" id=btn_confirm onclick="toggleconfirm();" value="Add confirm"/>
 <span id="confirmdiv" style="display: none;">Confirm: <input type="password" id="txt_confirm"/></span><br />
-<input type="submit" value="Get password" /></form>
+<select id="versionselect">
+<option value="v1" >v1</option>
+<option value="v2" selected="selected" >v2</option>
+</select><br />
+<input type="submit" value="Get password" /></form><br />
+<div id="debug" /> </div>
 </body>
 </html>
 
