@@ -82,7 +82,7 @@ To use, standalone page
 
 Using the standalone page works where the password field is not embedded in a webpage.
 
-- Go to http://hughperkins.github.com/passwordbookmarklet/standalone.html
+- Go to https://hughperkins.github.io/openpw/standalone.html
 - fill in the domain and password
 - click 'Get Password'
 
